@@ -403,7 +403,7 @@ class MailHandler:
 
         # replace the "ra+string@simplelogin.co" by the alias
         # as this is usually included in when reply
-        msg_raw.replace(reply_email, alias.encode())
+        msg_raw.replace(reply_email.encode(), alias.encode())
 
         smtp.sendmail(
             alias,
