@@ -400,6 +400,11 @@ class MailHandler:
                 add_dkim_signature(msg, alias_domain)
 
         msg_raw = msg.as_string().encode()
+
+        # replace the "ra+string@simplelogin.co" by the alias
+        # as this is usually included in when reply
+        msg_raw.replace(reply_email, alias.encode())
+
         smtp.sendmail(
             alias,
             forward_email.website_email,
