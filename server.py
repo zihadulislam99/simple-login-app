@@ -50,6 +50,8 @@ from app.models import (
     Directory,
     Mailbox,
     DeletedAlias,
+    ForwardEmail,
+    ForwardEmailLog,
 )
 from app.monitor.base import monitor_bp
 from app.oauth.base import oauth_bp
@@ -156,7 +158,7 @@ def fake_data():
     api_key = ApiKey.create(user_id=user.id, name="Firefox")
     api_key.code = "codeFF"
 
-    GenEmail.create_new(user.id, "e1@")
+    a1 = GenEmail.create_new(user.id, "e1@")
     GenEmail.create_new(user.id, "e2@")
     GenEmail.create_new(user.id, "e3@")
 
@@ -164,6 +166,19 @@ def fake_data():
     CustomDomain.create(
         user_id=user.id, domain="very-long-domain.com.net.org", verified=True
     )
+    db.session.commit()
+
+    fe = ForwardEmail.create(
+        gen_email_id=a1.id,
+        website_email="website@example.com",
+        website_from="First Last <website@example.com>",
+        reply_email="reply+string@sl.local",
+    )
+    db.session.commit()
+
+    ForwardEmailLog.create(forward_id=fe.id)
+    ForwardEmailLog.create(forward_id=fe.id, is_reply=True)
+    ForwardEmailLog.create(forward_id=fe.id, blocked=True)
     db.session.commit()
 
     Directory.create(user_id=user.id, name="abcd")

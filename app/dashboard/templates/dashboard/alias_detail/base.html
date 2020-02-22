@@ -1,0 +1,35 @@
+{% extends 'default.html' %}
+
+{% set active_page = "dashboard" %}
+
+{% block default_content %}
+  <div class="row">
+    <div class="col-lg-3 order-lg-1 mb-4">
+      <div class="list-group list-group-transparent mb-0">
+        <a href="{{ url_for('dashboard.alias_log', alias_id=alias.id) }}"
+           class="list-group-item list-group-item-action {{ 'active' if alias_detail_page == 'log' }}">
+          <span class="icon mr-3"><i class="fe fe-activity"></i></span>Activity
+        </a>
+
+        <a href="{{ url_for('dashboard.alias_contact_manager', alias_id=alias.id) }}"
+           class="list-group-item list-group-item-action {{ 'active' if alias_detail_page == 'contact' }}">
+          <span class="icon mr-3"><i class="fe fe-send"></i></span>Send Email
+        </a>
+      </div>
+    </div>
+
+    <div class="col-lg-9">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-wrap p-lg-6">
+            {% block alias_detail_content %}
+            {% endblock %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+

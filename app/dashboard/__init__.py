@@ -4,11 +4,9 @@ from .views import (
     setting,
     custom_alias,
     billing,
-    alias_log,
     unsubscribe,
     api_key,
     custom_domain,
-    alias_contact_manager,
     mfa_setup,
     mfa_cancel,
     domain_detail,
@@ -16,4 +14,5 @@ from .views import (
     directory,
     mailbox,
     deleted_alias,
+    alias_detail,
 )

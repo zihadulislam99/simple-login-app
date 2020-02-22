@@ -1,17 +1,96 @@
 import re
 
+import arrow
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, validators, ValidationError
 
 from app.config import EMAIL_DOMAIN
+from app.config import PAGE_LIMIT
 from app.dashboard.base import dashboard_bp
 from app.email_utils import get_email_part
 from app.extensions import db
 from app.log import LOG
+from app.models import ForwardEmailLog
 from app.models import GenEmail, ForwardEmail
 from app.utils import random_string
+
+
+class AliasLog:
+    website_email: str
+    website_from: str
+    alias: str
+    when: arrow.Arrow
+    is_reply: bool
+    blocked: bool
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
+def get_alias_log(gen_email: GenEmail, page_id=0):
+    logs: [AliasLog] = []
+
+    q = (
+        db.session.query(ForwardEmail, ForwardEmailLog)
+        .filter(ForwardEmail.id == ForwardEmailLog.forward_id)
+        .filter(ForwardEmail.gen_email_id == gen_email.id)
+        .order_by(ForwardEmailLog.id.desc())
+        .limit(PAGE_LIMIT)
+        .offset(page_id * PAGE_LIMIT)
+    )
+
+    for fe, fel in q:
+        al = AliasLog(
+            website_email=fe.website_email,
+            website_from=fe.website_from,
+            alias=gen_email.email,
+            when=fel.created_at,
+            is_reply=fel.is_reply,
+            blocked=fel.blocked,
+        )
+        logs.append(al)
+    logs = sorted(logs, key=lambda l: l.when, reverse=True)
+
+    return logs
+
+
+@dashboard_bp.route("/alias/<int:alias_id>/activity/<int:page_id>")
+@dashboard_bp.route("/alias/<int:alias_id>/activity", defaults={"page_id": 0})
+@login_required
+def alias_log(alias_id, page_id):
+    alias = gen_email = GenEmail.get(alias_id)
+
+    # sanity check
+    if not gen_email:
+        flash("You do not have access to this page", "warning")
+        return redirect(url_for("dashboard.index"))
+
+    if gen_email.user_id != current_user.id:
+        flash("You do not have access to this page", "warning")
+        return redirect(url_for("dashboard.index"))
+
+    logs = get_alias_log(gen_email, page_id)
+    base = (
+        db.session.query(ForwardEmail, ForwardEmailLog)
+        .filter(ForwardEmail.id == ForwardEmailLog.forward_id)
+        .filter(ForwardEmail.gen_email_id == gen_email.id)
+    )
+    total = base.count()
+    email_forwarded = (
+        base.filter(ForwardEmailLog.is_reply == False)
+        .filter(ForwardEmailLog.blocked == False)
+        .count()
+    )
+    email_replied = base.filter(ForwardEmailLog.is_reply == True).count()
+    email_blocked = base.filter(ForwardEmailLog.blocked == True).count()
+    last_page = (
+        len(logs) < PAGE_LIMIT
+    )  # lightweight pagination without counting all objects
+
+    return render_template("dashboard/alias_detail/log.html", **locals())
 
 
 def email_validator():
@@ -45,13 +124,14 @@ class NewContactForm(FlaskForm):
     )
 
 
-@dashboard_bp.route("/alias_contact_manager/<alias_id>/", methods=["GET", "POST"])
+@dashboard_bp.route("/alias/<int:alias_id>/contact_manager/", methods=["GET", "POST"])
 @dashboard_bp.route(
-    "/alias_contact_manager/<alias_id>/<int:forward_email_id>", methods=["GET", "POST"]
+    "/alias/<int:alias_id>/contact_manager/<int:forward_email_id>",
+    methods=["GET", "POST"],
 )
 @login_required
 def alias_contact_manager(alias_id, forward_email_id=None):
-    gen_email = GenEmail.get(alias_id)
+    alias = gen_email = GenEmail.get(alias_id)
 
     # sanity check
     if not gen_email:
@@ -103,6 +183,7 @@ def alias_contact_manager(alias_id, forward_email_id=None):
                         "dashboard.alias_contact_manager",
                         alias_id=alias_id,
                         forward_email_id=forward_email.id,
+                        alias=alias,
                     )
                 )
         elif request.form.get("form-name") == "delete":
@@ -139,10 +220,9 @@ def alias_contact_manager(alias_id, forward_email_id=None):
         )
 
     return render_template(
-        "dashboard/alias_contact_manager.html",
+        "dashboard/alias_detail/contact_manager.html",
         forward_emails=forward_emails,
-        alias=gen_email.email,
-        gen_email=gen_email,
+        alias=alias,
         new_contact_form=new_contact_form,
         forward_email_id=forward_email_id,
     )

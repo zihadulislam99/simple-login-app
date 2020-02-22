@@ -1,6 +1,11 @@
-{% extends 'default.html' %}
+{% extends 'dashboard/alias_detail/base.html' %}
 
-{% set active_page = "dashboard" %}
+{% set alias_detail_page = "log" %}
+
+{% block title %}
+  {{ alias.email }} Activity
+{% endblock %}
+
 {% block head %}
   <style>
     {#  https://bootsnipp.com/snippets/rljEW#}
@@ -63,14 +68,11 @@
     }
   </style>
 {% endblock %}
-{% block title %}
-  Alias Activity
-{% endblock %}
 
-{% block default_content %}
+{% block alias_detail_content %}
   <div class="page-header row ml-0">
     <h3 class="page-title col">
-      {{ alias }}
+      {{ alias.email }}
     </h3>
   </div>
   <div class="row">
@@ -107,7 +109,7 @@
   <div class="row">
     {% for log in logs %}
       <div class="col-12">
-        <div class="my-2 p-2 card border-light">
+        <div class="my-2 p-2 card">
           <div class="font-weight-bold">{{ log.when | dt }}</div>
           <div>
             <span class="mr-2">{{ log.website_from or log.website_email }}</span>
@@ -142,7 +144,4 @@
       </li>
     </ul>
   </nav>
-{% endblock %}
-
-{% block script %}
 {% endblock %}

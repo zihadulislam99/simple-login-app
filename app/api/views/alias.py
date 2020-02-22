@@ -3,7 +3,7 @@ from flask import jsonify, request
 from flask_cors import cross_origin
 
 from app.api.base import api_bp, verify_api_key
-from app.dashboard.views.alias_log import get_alias_log
+from app.dashboard.views.alias_detail import get_alias_log
 from app.dashboard.views.index import get_alias_info, AliasInfo
 from app.extensions import db
 from app.models import GenEmail
