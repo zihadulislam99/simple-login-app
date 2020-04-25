@@ -118,7 +118,7 @@ def index():
         db.session.commit()
 
     return render_template(
-        "dashboard/index.html",
+        "dashboard/index2.html",
         client_users=client_users,
         alias_infos=get_alias_infos_with_pagination_v2(current_user, page, query, sort),
         highlight_alias_id=highlight_alias_id,

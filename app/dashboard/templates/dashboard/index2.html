@@ -1,0 +1,228 @@
+{% extends 'default.html' %}
+
+{% set active_page = "dashboard" %}
+
+{% block head %}
+  <style xmlns:v-clipboard="http://www.w3.org/1999/xhtml" xmlns:v-clipboard="http://www.w3.org/1999/xhtml">
+    .alias-activity {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .btn-group-border-left {
+      border-left: 1px #fbfbfb4f solid;
+    }
+  </style>
+{% endblock %}
+
+{% block title %}
+  Alias
+{% endblock %}
+
+{% block default_content %}
+  <div id="app" class="row">
+  <div class="col-12 col-lg-6" v-for="alias in aliases">
+  <div class="card p-4 shadow-sm" :class="{'highlight-row': alias.highlighted}">
+
+    <div class="row">
+      <div class="col-8">
+              <span @click="copyToClipboard(alias.email)"
+                    class="font-weight-bold cursor mb-0"
+                    data-toggle="tooltip"
+                    title="Click to copy"
+              >
+                [[alias.email]]
+              </span>
+      </div>
+      <div class="col text-right">
+        <label class="custom-switch cursor"
+               data-toggle="tooltip"
+               title="Enable/Disable alias - you will start/stop receiving emails
+                   sent to this alias"
+               style="padding-left: 0px"
+        >
+          <input type="checkbox" class="custom-switch-input"
+                 v-model="alias.enabled"
+          >
+
+          <span class="custom-switch-indicator"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Email Activity -->
+    <div class="row">
+      <div class="col">
+        <div style="font-size: 12px">
+
+          <div v-if="alias.latest_activity != undefined">
+
+            <div v-if="alias.latest_activity.action == 'reply'">
+              [[alias.latest_activity.contact.email]]
+              <i class="fa fa-reply mr-2" data-toggle="tooltip" title="Email reply/sent from alias"></i>
+              [[alias.latest_activity.timestamp]]
+            </div>
+
+            <div v-if="alias.latest_activity.action == 'bounced'" class="text-danger">
+              [[alias.latest_activity.contact.email]]
+              <i class="fa fa-warning mr-2" data-toggle="tooltip"
+                 title="Email bounced and cannot be forwarded to your mailbox"></i>
+              [[alias.latest_activity.timestamp]]
+            </div>
+
+            <div v-if="alias.latest_activity.action == 'block'">
+              [[alias.latest_activity.contact.email]]
+              <i class="fa fa-ban mr-2 text-danger" data-toggle="tooltip" title="Email blocked"></i>
+              [[alias.latest_activity.timestamp]]
+            </div>
+
+            <div v-if="alias.latest_activity.action == 'forward'">
+              [[alias.latest_activity.contact.email]]
+              <i class="fa fa-paper-plane  mr-2" data-toggle="tooltip" title="Email forwarded to alias"></i>
+              [[alias.latest_activity.timestamp]]
+            </div>
+
+
+          </div>
+          <div v-else>
+            No Activity. Alias created [[alias.creation_date]]
+          </div>
+
+          <span class="alias-activity">[[ alias.nb_forward ]]</span> forwards,
+          <span class="alias-activity">[[ alias.nb_block ]]</span> blocks,
+          <span class="alias-activity">[[ alias.nb_reply ]]</span> replies
+          <a :href="`/dashboard/alias_log/${alias.id}`"
+             class="btn btn-sm btn-link">
+            See All &nbsp;→
+          </a>
+
+        </div>
+      </div>
+    </div>
+    <!-- END Email Activity -->
+
+    <!-- Send Email && More button -->
+    <div class="row">
+      <div class="col">
+        <a :href="`/dashboard/alias_contact_manager/${alias.id}`"
+           class="btn btn-sm btn-outline-primary"
+           :class="{disabled: alias.enabled}"
+           data-toggle="tooltip"
+           title="Not only an alias can receive emails, it can send emails too"
+        >
+          Send Email&nbsp; &nbsp;<i class="fe fe-send"></i>
+        </a>
+      </div>
+      <div class="col text-right">
+        <a class="btn btn-sm" data-toggle="collapse" :href="`#alias-${alias.id}`" role="button"
+           aria-expanded="false">
+          More <i class="fe fe-chevron-down"></i>
+        </a>
+      </div>
+    </div>
+    <!-- END Send Email && More button -->
+
+    <!-- Collapse section -->
+    <div class="collapse" :id="`alias-${alias.id}`">
+      <div v-if="mailboxes.length > 1">
+        <div class="small-text mt-2">Current mailbox</div>
+        <div class="d-flex">
+          <div class="flex-grow-1 mr-2">
+            <select class="form-control form-control-sm custom-select">
+              <option v-for="mailbox in mailboxes" :value="mailbox.id">
+                [[mailbox.email]]
+              </option>
+            </select>
+          </div>
+
+          <div class="">
+            <a class="save-mailbox btn btn-sm btn-outline-info w-100">
+              Update
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="d-flex mt-2">
+        <div class="flex-grow-1 mr-2">
+          <textarea v-model="alias.note" class="form-control" rows="2" placeholder="Alias Note."></textarea>
+        </div>
+
+        <div class="">
+          <a class="save-note btn btn-sm btn-outline-success w-100">
+            Save
+          </a>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col">
+          <span class="delete-email btn btn-link btn-sm float-right text-danger">
+                Delete&nbsp; &nbsp;<i class="dropdown-icon fe fe-trash-2 text-danger"></i>
+          </span>
+        </div>
+
+      </div>
+    </div>
+    <!-- END Collapse section -->
+
+  </div>
+
+{% endblock %}
+
+
+{% block script %}
+  <script src="{{ url_for('static', filename='node_modules/vue/dist/vue.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/clipboardCopy.js') }}"></script>
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      delimiters: ["[[", "]]"], // necessary to avoid conflict with jinja
+      directives: {clipboard},
+      data: {
+        message: 'Hello Vue!',
+        page: 0,
+        aliases: [
+          {highlighted: true, email: "abcd@gm", enabled: true},
+          {highlighted: false, email: "xyzt@hm", enabled: false},
+        ],
+        mailboxes: [
+          {"id": 10, "email": "mb@gm"},
+          {"id": 20, "email": "mb@hm"}
+        ]
+      },
+      methods: {
+        copyToClipboard(email) {
+          clipboardCopy(email);
+          toastr.success(`Copied`);
+        }
+      },
+      async mounted() {
+        let that = this;
+        let res = await fetch(`/api/v2/aliases?page_id=${that.page}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          }
+        });
+
+        let json = await res.json();
+        that.aliases = json.aliases;
+        console.log("todo", json.aliases);
+      }
+    })
+  </script>
+
+
+  <script>
+    {% if show_intro %}
+      // only show intro when screen is big enough to show "developer" tab
+      if (window.innerWidth >= 1024) {
+        introJs().start();
+      }
+    {% endif %}
+  </script>
+{% endblock %}
