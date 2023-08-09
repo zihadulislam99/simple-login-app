@@ -5,7 +5,7 @@ COPY ./static/package*.json /code/static/
 RUN cd /code/static && npm install
 
 # Main image
-FROM python:3.10.7-slim
+FROM python:3.12.0b4-slim
 
 # install some utility packages
 RUN apt update && apt install -y vim telnet
